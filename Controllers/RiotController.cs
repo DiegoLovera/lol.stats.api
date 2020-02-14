@@ -38,7 +38,7 @@ namespace lol.stats.api.Controllers
         }
 
         [HttpGet("/Matches/{accountId}")]
-        [ProducesResponseType(typeof(SummonerMatches), 200)]
+        [ProducesResponseType(typeof(MatchesList), 200)]
         public async Task<ActionResult> GetMatches(string accountId, [FromQuery] int queue = 420, [FromQuery] int season = 13, [FromQuery] long beginTime = 1578668400000)
         {
             try

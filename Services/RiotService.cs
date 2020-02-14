@@ -37,39 +37,47 @@ namespace lol.stats.api.Services
             return JsonSerializer.Deserialize<Summoner>(responseString, _jsonOptions);
         }
 
-        public async Task<SummonerMatches> GetSummonerMatches(string accountId, int queue, int season, long beginTime)
+        public async Task<MatchesList> GetSummonerMatches(string accountId, int queue, int season, long beginTime)
         {
             var uri = _appConfig.BaseAddress + _appConfig.SummonerMatches + accountId + "?queue=" + queue + "&season=" + season + "&beginTime=" + beginTime;
             var responseString = await _httpClient.CreateClient("riot").GetStringAsync(uri);
-            return JsonSerializer.Deserialize<SummonerMatches>(responseString, _jsonOptions);
+            return JsonSerializer.Deserialize<MatchesList>(responseString, _jsonOptions);
         }
 
-        public async Task<SummonerMatches> GetSummonerMatches(string accountId, int season, long beginTime)
+        public async Task<MatchesList> GetSummonerMatches(string accountId, int season, long beginTime)
         {
-            var uri = _appConfig.BaseAddress + _appConfig.SummonerMatches + accountId + "&season=" + season + "&beginTime=" + beginTime;
+            var uri = _appConfig.BaseAddress + _appConfig.SummonerMatches + accountId + "?season=" + season + "&beginTime=" + beginTime;
             var responseString = await _httpClient.CreateClient("riot").GetStringAsync(uri);
-            return JsonSerializer.Deserialize<SummonerMatches>(responseString, _jsonOptions);
+            return JsonSerializer.Deserialize<MatchesList>(responseString, _jsonOptions);
         }
 
-        public async Task<SummonerMatches> GetSummonerMatches(string accountId, int queue, int season)
+        public async Task<MatchesList> GetSummonerMatches(string accountId, int queue, int season)
         {
             var uri = _appConfig.BaseAddress + _appConfig.SummonerMatches + accountId + "?queue=" + queue + "&season=" + season;
             var responseString = await _httpClient.CreateClient("riot").GetStringAsync(uri);
-            return JsonSerializer.Deserialize<SummonerMatches>(responseString, _jsonOptions);
+            return JsonSerializer.Deserialize<MatchesList>(responseString, _jsonOptions);
         }
 
-        public async Task<SummonerMatches> GetSummonerMatches(string accountId, int season)
+        public async Task<MatchesList> GetSummonerMatches(string accountId, int season)
         {
-            var uri = _appConfig.BaseAddress + _appConfig.SummonerMatches + accountId + "&season=" + season;
+            string uri;
+            if (season > 100)
+            {
+                uri = _appConfig.BaseAddress + _appConfig.SummonerMatches + accountId + "?queue=" + season;
+            }
+            else
+            {
+                uri = _appConfig.BaseAddress + _appConfig.SummonerMatches + accountId + "?season=" + season;
+            }
             var responseString = await _httpClient.CreateClient("riot").GetStringAsync(uri);
-            return JsonSerializer.Deserialize<SummonerMatches>(responseString, _jsonOptions);
+            return JsonSerializer.Deserialize<MatchesList>(responseString, _jsonOptions);
         }
 
-        public async Task<SummonerMatches> GetSummonerMatches(string accountId)
+        public async Task<MatchesList> GetSummonerMatches(string accountId)
         {
             var uri = _appConfig.BaseAddress + _appConfig.SummonerMatches + accountId;
             var responseString = await _httpClient.CreateClient("riot").GetStringAsync(uri);
-            return JsonSerializer.Deserialize<SummonerMatches>(responseString, _jsonOptions);
+            return JsonSerializer.Deserialize<MatchesList>(responseString, _jsonOptions);
         }
     }
 }

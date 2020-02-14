@@ -8,6 +8,6 @@ namespace lol.stats.api.Business
 {
     public interface ISummonerStatsBusiness
     {
-        Task<SummonerMatches> GetSummonerMatchesAsync(string summonerName, int[] queues, int[] seasons);
+        Task<MatchesList> GetSummonerMatchesAsync(string summonerName, int page, int[] queues, int[] seasons);
     }
 }

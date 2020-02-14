@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace lol.stats.api.Dtos
 {
-    public class SummonerMatches
+    public class MatchesList
     {
         [JsonPropertyName("matches")]
         public List<Match> Matches { get; set; }

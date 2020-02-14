@@ -6,11 +6,11 @@ namespace lol.stats.api.Services
     public interface IRiotService
     {
         Task<Summoner> GetSummoner(string summonerName);
-        Task<SummonerMatches> GetSummonerMatches(string accountId, int queue, int season, long beginTime);
-        Task<SummonerMatches> GetSummonerMatches(string accountId, int season, long beginTime);
-        Task<SummonerMatches> GetSummonerMatches(string accountId, int queue, int season);
-        Task<SummonerMatches> GetSummonerMatches(string accountId, int season);
-        Task<SummonerMatches> GetSummonerMatches(string accountId);
+        Task<MatchesList> GetSummonerMatches(string accountId, int queue, int season, long beginTime);
+        Task<MatchesList> GetSummonerMatches(string accountId, int season, long beginTime);
+        Task<MatchesList> GetSummonerMatches(string accountId, int queue, int season);
+        Task<MatchesList> GetSummonerMatches(string accountId, int season);
+        Task<MatchesList> GetSummonerMatches(string accountId);
         Task<MatchDetail> GetMatchDetail(string gameId);
     }
 }

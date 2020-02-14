@@ -1,9 +1,6 @@
 ﻿using lol.stats.api.Dtos;
 using lol.stats.api.Services;
-using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -18,56 +15,40 @@ namespace lol.stats.api.Business
             _riotService = riotService;
         }
 
-        public async Task<SummonerMatches> GetSummonerMatchesAsync(string summonerName, int[] queues, int[] seasons)
+        public async Task<MatchesList> GetSummonerMatchesAsync(string summonerName, int page, int[] queues, int[] seasons)
         {
             var summonerData = await _riotService.GetSummoner(summonerName);
-            var result = new SummonerMatches
+            int beginIndex = page;
+            int endIndex = page * 100;
+            if (beginIndex == 1)
+            {
+                endIndex = 100;
+                beginIndex = 0;
+            }
+            else
+            {
+                endIndex = page * 100;
+                beginIndex = endIndex - 100;
+            }
+
+            var result = new MatchesList
             {
                 Matches = new List<Match>()
             };
-            if (queues.Length > 0)
-            {
-                foreach (int queue in queues)
-                {
-                    if (seasons.Length > 0)
-                    {
-                        foreach (int season in seasons)
-                        {
-                            SummonerMatches summonerMatches;
-                            if (season == 14)
-                            {
-                                summonerMatches = await _riotService.GetSummonerMatches(summonerData.AccountId, queue, 13, 1578668400000);
-                            }
-                            else
-                            {
-                                summonerMatches = await _riotService.GetSummonerMatches(summonerData.AccountId, queue, season);
-                            }
-                            result.Matches.AddRange(summonerMatches.Matches);
-                            result.TotalGames += summonerMatches.TotalGames;
-                        }
-                    }
-                    else
-                    {
-                        SummonerMatches summonerMatches = await _riotService.GetSummonerMatches(summonerData.AccountId, queue);
-                        result.Matches.AddRange(summonerMatches.Matches);
-                        result.TotalGames += summonerMatches.TotalGames;
-                    }
-                }
-            } 
-            else
+            foreach (int queue in queues)
             {
                 if (seasons.Length > 0)
                 {
                     foreach (int season in seasons)
                     {
-                        SummonerMatches summonerMatches;
+                        MatchesList summonerMatches;
                         if (season == 14)
                         {
-                            summonerMatches = await _riotService.GetSummonerMatches(summonerData.AccountId, 13, 1578668400000);
+                            summonerMatches = await _riotService.GetSummonerMatches(summonerData.AccountId, queue, 13, 1578668400000);
                         }
                         else
                         {
-                            summonerMatches = await _riotService.GetSummonerMatches(summonerData.AccountId, season);
+                            summonerMatches = await _riotService.GetSummonerMatches(summonerData.AccountId, queue, season);
                         }
                         result.Matches.AddRange(summonerMatches.Matches);
                         result.TotalGames += summonerMatches.TotalGames;
@@ -75,7 +56,7 @@ namespace lol.stats.api.Business
                 }
                 else
                 {
-                    SummonerMatches summonerMatches = await _riotService.GetSummonerMatches(summonerData.AccountId);
+                    MatchesList summonerMatches = await _riotService.GetSummonerMatches(summonerData.AccountId, queue);
                     result.Matches.AddRange(summonerMatches.Matches);
                     result.TotalGames += summonerMatches.TotalGames;
                 }
