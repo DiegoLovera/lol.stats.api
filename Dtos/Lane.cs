@@ -5,5 +5,5 @@ using System.Threading.Tasks;
 
 namespace lol.stats.api.Dtos
 {
-    public enum Lane { MID, MIDDLE, TOP, JUNGLE, BOT, BOTTOM };
+    public enum Lane { MID, MIDDLE, TOP, JUNGLE, BOT, BOTTOM, NONE };
 }

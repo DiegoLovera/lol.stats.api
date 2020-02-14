@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using lol.stats.api.Business;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using lol.stats.api.Business;
-using lol.stats.api.Services;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 
 namespace lol.stats.api.Controllers
 {
@@ -15,37 +14,35 @@ namespace lol.stats.api.Controllers
     public class SummonerStatsController : ControllerBase
     {
         private readonly ISummonerStatsBusiness _summonerStatsBusiness;
-        private readonly IRiotService _riotService;
 
-        public SummonerStatsController(ISummonerStatsBusiness summonerStatsBusiness, IRiotService riotService)
+        public SummonerStatsController(ISummonerStatsBusiness summonerStatsBusiness)
         {
             _summonerStatsBusiness = summonerStatsBusiness;
-            _riotService = riotService;
         }
-
-        [HttpGet("/{summonerName}")]
-        public async Task<ActionResult> GetSummoner(string summonerName)
+        
+        [HttpGet("/SummonerMatches/{summonerName}")]
+        public async Task<ActionResult> GetSummonerMatches([Required] string summonerName, [FromQuery(Name = "queues")] int[] queues, [FromQuery(Name = "seasons")] int[] seasons)
         {
+            int[] validSeasons = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 };
+            int[] validQueues = { 420, 430, 440 };
             try
             {
-                return Ok(await _riotService.GetSummoner(summonerName));
-            }
-            catch (HttpRequestException ex)
-            {
-                return BadRequest(ex);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex);
-            }
-        }
+                foreach(int season in seasons)
+                {
+                    if (!validSeasons.Contains(season))
+                    {
+                        return BadRequest("La season envíada no se encuentra dentro de las temporadas validas (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14).");
+                    }
+                }
 
-        [HttpGet("/Matches/{accountId}")]
-        public async Task<ActionResult> GetMatches(string accountId, [FromQuery] int queue = 420, [FromQuery] int season = 13, [FromQuery] long beginTime = 1578668400000)
-        {
-            try
-            {
-                return Ok(await _riotService.GetSummonerMatches(accountId, queue, season, beginTime));
+                foreach (int queue in queues)
+                {
+                    if (!validQueues.Contains(queue))
+                    {
+                        return BadRequest("La queue envíada no se encuentra dentro de las queues validas (420,430,440).");
+                    }
+                }
+                return Ok(await _summonerStatsBusiness.GetSummonerMatchesAsync(summonerName, queues, seasons));
             }
             catch (HttpRequestException ex)
             {

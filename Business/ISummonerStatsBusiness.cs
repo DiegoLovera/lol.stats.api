@@ -1,4 +1,5 @@
-﻿using System;
+﻿using lol.stats.api.Dtos;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,5 +8,6 @@ namespace lol.stats.api.Business
 {
     public interface ISummonerStatsBusiness
     {
+        Task<SummonerMatches> GetSummonerMatchesAsync(string summonerName, int[] queues, int[] seasons);
     }
 }
