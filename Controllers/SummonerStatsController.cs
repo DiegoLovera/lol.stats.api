@@ -3,6 +3,7 @@ using lol.stats.api.Dtos;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.Http;
@@ -31,14 +32,12 @@ namespace lol.stats.api.Controllers
         /// <param name="seasons">Temporada de juego. 14 - Season 2020, 13 - Season 2019, 12 - Pre-Season 2019......</param>
         /// <param name="page">Página de resultados. Este valor empieza de 1 en adelante, en caso de no ser envíado se tomara 1 por default.</param>
         /// <returns>Una lista con las partidas del juegador buscado.</returns>
-        [HttpGet("/SummonerMatches/{summonerName}")]
-        [ProducesResponseType(typeof(MatchesList), 200)]
-        public async Task<ActionResult> GetSummonerMatches([Required] string summonerName, [FromQuery(Name = "seasons")] int[] seasons, [FromQuery(Name = "queues")] int[] queues = null, [FromQuery] int page = 1)
+        [HttpGet("/MatchesList/{summonerName}")]
+        [ProducesResponseType(typeof(List<MatchDetail>), 200)]
+        public async Task<ActionResult> GetMatchesList([Required] string summonerName, [FromQuery(Name = "seasons")] int[] seasons, [FromQuery(Name = "queues")] int[] queues = null, [FromQuery] int page = 1)
         {
             try
             {
-                queues = (queues.Length == 0 ? validQueues : queues);
-
                 foreach(int season in seasons)
                 {
                     if (!validSeasons.Contains(season))

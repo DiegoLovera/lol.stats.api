@@ -39,11 +39,11 @@ namespace lol.stats.api.Controllers
 
         [HttpGet("/Matches/{accountId}")]
         [ProducesResponseType(typeof(MatchesList), 200)]
-        public async Task<ActionResult> GetMatches(string accountId, [FromQuery] int queue = 420, [FromQuery] int season = 13, [FromQuery] long beginTime = 1578668400000)
+        public async Task<ActionResult> GetMatches(string accountId, [FromQuery] int queue = 420, [FromQuery] int season = 13, [FromQuery] long beginTime = 1578668400000, [FromQuery] int beginIndex = 0, [FromQuery] int endIndex = 100)
         {
             try
             {
-                return Ok(await _riotService.GetSummonerMatches(accountId, queue, season, beginTime));
+                return Ok(await _riotService.GetSummonerMatches(accountId, queue, season, beginTime, beginIndex, endIndex));
             }
             catch (HttpRequestException ex)
             {
@@ -55,13 +55,13 @@ namespace lol.stats.api.Controllers
             }
         }
 
-        [HttpGet("/Match/{gameId}")]
+        [HttpGet("/Match/{matchId}")]
         [ProducesResponseType(typeof(MatchDetail), 200)]
-        public async Task<ActionResult> GetMatchDetail(string gameId)
+        public async Task<ActionResult> GetMatchDetail(long matchId)
         {
             try
             {
-                return Ok(await _riotService.GetMatchDetail(gameId));
+                return Ok(await _riotService.GetMatchDetail(matchId));
             }
             catch (HttpRequestException ex)
             {
