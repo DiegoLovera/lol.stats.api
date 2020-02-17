@@ -10,7 +10,7 @@ namespace lol.stats.api.Business
     public class SummonerStatsBusiness : ISummonerStatsBusiness
     {
         private readonly IRiotService _riotService;
-        private readonly int _maxMatchesPerRequest = 5;
+        private readonly int _maxMatchesPerRequest = 15;
         private readonly int[] validQueues = { 400, 420, 430, 440 };
 
         public SummonerStatsBusiness(IRiotService riotService)
@@ -91,10 +91,9 @@ namespace lol.stats.api.Business
                     result.Add(await _riotService.GetMatchDetail(match.GameId));
                 }
             }
-            catch(Exception ex)
+            catch (Exception)
             {
-                matchId.ToString();
-                ex.ToString();
+                throw new Exception("Error al obtener la información para la partida " + matchId);
             }
             return result;
         }
