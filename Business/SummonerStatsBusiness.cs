@@ -12,6 +12,7 @@ namespace lol.stats.api.Business
         private readonly IRiotService _riotService;
         private readonly int _maxMatchesPerRequest = 15;
         private readonly int[] validQueues = { 400, 420, 430, 440 };
+        private readonly int _minGamesToBePremade = 2;
 
         public SummonerStatsBusiness(IRiotService riotService)
         {
@@ -26,7 +27,7 @@ namespace lol.stats.api.Business
         /// <param name="queues"></param>
         /// <param name="seasons"></param>
         /// <returns></returns>
-        public async Task<List<MatchDetail>> GetSummonerMatchesAsync(string summonerName, int page, int[] queues, int[] seasons)
+        public async Task<SummonerStats> GetSummonerStatsAsync(string summonerName, int page, int[] queues, int[] seasons)
         {
             // In case of not sending any queue all valid queues are used.
             queues = (queues.Length == 0 ? validQueues : queues);
@@ -76,7 +77,8 @@ namespace lol.stats.api.Business
                 }
             }
             result.Matches = new List<Match>(result.Matches.OrderByDescending(c => c.Timestamp));
-            return await GetMatchDetailsListAsync(result);
+            var matches = await GetMatchDetailsListAsync(result);
+            return GetAdvancedStats(summonerData, matches);
         }
 
         private async Task<List<MatchDetail>> GetMatchDetailsListAsync(MatchesList matchesList)
@@ -97,5 +99,212 @@ namespace lol.stats.api.Business
             }
             return result;
         }
+
+        private SummonerStats GetAdvancedStats(Summoner summoner, List<MatchDetail> matches)
+        {
+            var result = new SummonerStats
+            {
+                MatchesDetails = matches,
+                UniqueChampions = new List<long>()
+            };
+            var summonerId = summoner.AccountId;
+            var premadeCandidates = new List<Premade>();
+
+            matches.ForEach(m =>
+            {
+                try
+                {
+                    var participant = m.ParticipantIdentities.Where(p => p.Player.CurrentAccountId == summonerId).FirstOrDefault();
+                    var participantStats = m.Participants.Where(p => p.ParticipantId == participant.ParticipantId).FirstOrDefault();
+
+                    result.Kills += participantStats.Stats.Kills;
+                    result.Deaths += participantStats.Stats.Deaths;
+                    result.Assists += participantStats.Stats.Assists;
+
+                    result.MaxKills = result.MaxKills < participantStats.Stats.Kills ? participantStats.Stats.Kills : result.MaxKills;
+                    result.MaxDeaths = result.MaxDeaths < participantStats.Stats.Deaths ? participantStats.Stats.Deaths : result.MaxDeaths;
+                    result.MaxAssists = result.MaxAssists < participantStats.Stats.Assists ? participantStats.Stats.Assists : result.MaxAssists;
+
+                    if (!result.UniqueChampions.Exists(c => c == participantStats.ChampionId))
+                    {
+                        result.UniqueChampions.Add(participantStats.ChampionId);
+                    }
+
+                    // Obtengo el equipo del summoner buscado
+                    var team = m.Teams.Where(t => t.TeamId == participantStats.TeamId).FirstOrDefault();
+
+                    // Determino si fue victoria o derrola para el summoner buscado
+                    var wasWin = team.Win != "Fail";
+
+                    // Aumento la victoria o derrota según corresponda
+                    if (wasWin)
+                    {
+                        result.Wins++;
+                    }
+                    else
+                    {
+                        result.Losses++;
+                    }
+
+                    // Busco todos los participantes que esten en el mismo equipo del summoner buscado
+                    var teamMates = m.Participants.Where(p => p.TeamId == participantStats.TeamId);
+
+                    // Busco los identities de cada uno de los compañeros de equipo
+                    var teamMatesIdentities = new List<ParticipantIdentity>();
+                    foreach (Participant teamMate in teamMates)
+                    {
+                        // Agrego a una lista de compañeros
+                        teamMatesIdentities.Add(m.ParticipantIdentities.Where(p => p.ParticipantId == teamMate.ParticipantId).FirstOrDefault());
+                    }
+
+                    // Itero a los compañeros para argegarlos a la lista o actualizar sus datos
+                    teamMatesIdentities.ForEach(t =>
+                    {
+                        // validar si existe ya dentro de la lista
+                        if (premadeCandidates.Exists(p => p.SummonerName == t.Player.SummonerName))
+                        {
+                            // Si ya existe aumento sus victorias o derrotas segun el resultado de la partida
+                            if (wasWin)
+                            {
+                                premadeCandidates.Find(p => p.SummonerName == t.Player.SummonerName).Wins++;
+                            }
+                            else
+                            {
+                                premadeCandidates.Find(p => p.SummonerName == t.Player.SummonerName).Losses++;
+                            }
+                        }
+                        else
+                        {
+                            // Si no existe lo agrego y inicio sus contadores
+                            if (wasWin)
+                            {
+                                premadeCandidates.Add(new Premade() { SummonerName = t.Player.SummonerName, Wins = 1, Losses = 0 });
+                            }
+                            else
+                            {
+                                premadeCandidates.Add(new Premade() { SummonerName = t.Player.SummonerName, Wins = 0, Losses = 1 });
+                            }
+                        }
+                    });
+
+                    // Segun la linea y el rol se agrega la victoria o la derrota
+                    switch (participantStats.Timeline.Lane)
+                    {
+                        case Lane.MID:
+                            if (wasWin)
+                            {
+                                result.MidlaneCarryWins++;
+                            }
+                            else
+                            {
+                                result.MidlaneCarryLosses++;
+                            }
+                            break;
+                        case Lane.MIDDLE:
+                            if (wasWin)
+                            {
+                                result.MidlaneCarryWins++;
+                            }
+                            else
+                            {
+                                result.MidlaneCarryLosses++;
+                            }
+                            break;
+                        case Lane.TOP:
+                            if (wasWin)
+                            {
+                                result.TopCarryWins++;
+                            }
+                            else
+                            {
+                                result.TopCarryLosses++;
+                            }
+                            break;
+                        case Lane.JUNGLE:
+                            if (wasWin)
+                            {
+                                result.JungleWins++;
+                            }
+                            else
+                            {
+                                result.JungleLosses++;
+                            }
+                            break;
+                        case Lane.BOT:
+                            if (participantStats.Timeline.Role == Role.DUO || participantStats.Timeline.Role == Role.DUO_CARRY)
+                            {
+                                if (wasWin)
+                                {
+                                    result.BottomCarryWins++;
+                                }
+                                else
+                                {
+                                    result.BottomCarryLosses++;
+                                }
+                            }
+                            else
+                            {
+                                if (wasWin)
+                                {
+                                    result.BottomSupportWins++;
+                                }
+                                else
+                                {
+                                    result.BottomSupportLosses++;
+                                }
+                            }
+                            break;
+                        case Lane.BOTTOM:
+                            if (participantStats.Timeline.Role == Role.DUO || participantStats.Timeline.Role == Role.DUO_CARRY)
+                            {
+                                if (wasWin)
+                                {
+                                    result.BottomCarryWins++;
+                                }
+                                else
+                                {
+                                    result.BottomCarryLosses++;
+                                }
+                            }
+                            else
+                            {
+                                if (wasWin)
+                                {
+                                    result.BottomSupportWins++;
+                                }
+                                else
+                                {
+                                    result.BottomSupportLosses++;
+                                }
+                            }
+                            break;
+                        case Lane.NONE:
+                            if (wasWin)
+                            {
+                                result.JungleWins++;
+                            }
+                            else
+                            {
+                                result.JungleLosses++;
+                            }
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Error iterando la partida: " + m.GameId + " con el mensaje:" + ex.Message + " ruta: " + ex.StackTrace);
+                }
+                
+            });
+
+            premadeCandidates.RemoveAll(r => r.Games < _minGamesToBePremade || r.SummonerName == summoner.Name);
+            result.Premades = premadeCandidates;
+
+            result.KillsByChampions = new Dictionary<string, long>();
+            result.DeathsByChampions = new Dictionary<string, long>();
+            result.AssistsByChampions = new Dictionary<string, long>();
+            result.KdaByChampions = new Dictionary<string, double>();
+            return result;
+        } 
     }
 }
