@@ -28,6 +28,7 @@ namespace lol.stats.api
         public void ConfigureServices(IServiceCollection services)
         {
             string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            string apiKey = Environment.GetEnvironmentVariable("API_KEY");
 
             Configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -48,7 +49,7 @@ namespace lol.stats.api
             services.AddHttpClient("riot", c =>
             {
                 c.BaseAddress = new Uri(Configuration.GetSection("AppSettings").GetValue<string>("BaseAddress"));
-                c.DefaultRequestHeaders.Add("X-Riot-Token", Configuration.GetSection("AppSettings").GetValue<string>("ApiKey"));
+                c.DefaultRequestHeaders.Add("X-Riot-Token", apiKey);
             });
 
             services.AddTransient<IRiotService, RiotService>();

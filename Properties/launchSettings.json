@@ -13,14 +13,16 @@
       "commandName": "IISExpress",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "API_KEY": "RGAPI-40271323-243f-4587-a316-b89e6da78582"
       }
     },
     "lol.stats.api": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "API_KEY": "RGAPI-40271323-243f-4587-a316-b89e6da78582"
       },
       "applicationUrl": "https://localhost:5001;http://localhost:5000"
     },
