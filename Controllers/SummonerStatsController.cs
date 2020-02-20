@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace lol.stats.api.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/Summoner")]
     [ApiController]
     public class SummonerStatsController : ControllerBase
     {
@@ -32,9 +32,9 @@ namespace lol.stats.api.Controllers
         /// <param name="seasons">Temporada de juego. 14 - Season 2020, 13 - Season 2019, 12 - Pre-Season 2019......</param>
         /// <param name="page">Página de resultados. Este valor empieza de 1 en adelante, en caso de no ser envíado se tomara 1 por default.</param>
         /// <returns>Una lista con las partidas del juegador buscado.</returns>
-        [HttpGet("/Stats/{summonerName}")]
-        [ProducesResponseType(typeof(SummonerStats), 200)]
-        public async Task<ActionResult> GetSummonerStats([Required] string summonerName, [FromQuery(Name = "seasons")] int[] seasons, [FromQuery(Name = "queues")] int[] queues = null, [FromQuery] int page = 1)
+        [HttpGet("/Summoner/Matches/{summonerName}")]
+        [ProducesResponseType(typeof(List<MatchDetail>), 200)]
+        public async Task<ActionResult> GetSummonerMatches([Required] string summonerName, [FromQuery(Name = "seasons")] int[] seasons, [FromQuery(Name = "queues")] int[] queues = null, [FromQuery] int page = 1)
         {
             try
             {
@@ -57,7 +57,25 @@ namespace lol.stats.api.Controllers
                 {
                     return BadRequest("La página no puede ser menor a 1.");
                 }
-                return Ok(await _summonerStatsBusiness.GetSummonerStatsAsync(summonerName, page, queues, seasons));
+                return Ok(await _summonerStatsBusiness.GetSummonerMatchesAsync(summonerName, page, queues, seasons));
+            }
+            catch (HttpRequestException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+
+        [HttpGet("/Summoner/Stats/{accountId}")]
+        [ProducesResponseType(typeof(SummonerStats), 200)]
+        public async Task<ActionResult> GetSummonerStats([Required] string accountId)
+        {
+            try
+            {
+                return Ok(await _summonerStatsBusiness.GetSummonerStatsAsync(accountId));
             }
             catch (HttpRequestException ex)
             {

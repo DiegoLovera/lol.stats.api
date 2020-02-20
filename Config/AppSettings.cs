@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace lol.stats.api.Config
+﻿namespace lol.stats.api.Config
 {
     public class AppSettings
     {
@@ -12,5 +7,6 @@ namespace lol.stats.api.Config
         public string Summoner { get; set; }
         public string SummonerMatches { get; set; }
         public string Game { get; set; }
+        public MongoConfiguration MongoConfiguration { get; set; }
     }
 }

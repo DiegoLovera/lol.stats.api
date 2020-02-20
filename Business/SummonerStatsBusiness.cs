@@ -1,4 +1,5 @@
-﻿using lol.stats.api.Dtos;
+﻿using lol.stats.api.Dao;
+using lol.stats.api.Dtos;
 using lol.stats.api.Services;
 using System;
 using System.Collections.Generic;
@@ -10,24 +11,18 @@ namespace lol.stats.api.Business
     public class SummonerStatsBusiness : ISummonerStatsBusiness
     {
         private readonly IRiotService _riotService;
+        private readonly IBaseDao<MatchDetail> _matchDetailDao;
         private readonly int _maxMatchesPerRequest = 15;
         private readonly int[] validQueues = { 400, 420, 430, 440 };
         private readonly int _minGamesToBePremade = 2;
 
-        public SummonerStatsBusiness(IRiotService riotService)
+        public SummonerStatsBusiness(IRiotService riotService, IBaseDao<MatchDetail> matchDetailDao)
         {
             _riotService = riotService;
+            _matchDetailDao = matchDetailDao;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="summonerName"></param>
-        /// <param name="page"></param>
-        /// <param name="queues"></param>
-        /// <param name="seasons"></param>
-        /// <returns></returns>
-        public async Task<SummonerStats> GetSummonerStatsAsync(string summonerName, int page, int[] queues, int[] seasons)
+        public async Task<List<MatchDetail>> GetSummonerMatchesAsync(string summonerName, int page, int[] queues, int[] seasons)
         {
             // In case of not sending any queue all valid queues are used.
             queues = (queues.Length == 0 ? validQueues : queues);
@@ -77,8 +72,9 @@ namespace lol.stats.api.Business
                 }
             }
             result.Matches = new List<Match>(result.Matches.OrderByDescending(c => c.Timestamp));
-            var matches = await GetMatchDetailsListAsync(result);
-            return GetAdvancedStats(summonerData, matches);
+            var matchesDetails = await GetMatchDetailsListAsync(result);
+            await _matchDetailDao.InsertMany(matchesDetails);
+            return matchesDetails;
         }
 
         private async Task<List<MatchDetail>> GetMatchDetailsListAsync(MatchesList matchesList)
@@ -91,21 +87,21 @@ namespace lol.stats.api.Business
             return result;
         }
 
-        private SummonerStats GetAdvancedStats(Summoner summoner, List<MatchDetail> matches)
+        public async Task<SummonerStats> GetSummonerStatsAsync(string accountId)
         {
             var result = new SummonerStats
             {
-                MatchesDetails = matches,
+                MatchesDetails = new List<MatchDetail>(),
                 UniqueChampions = new List<UniqueChampionStats>()
-        };
+            };
             var premadeCandidates = new List<Premade>();
-
+            var matches = await _matchDetailDao.Get(accountId);
             matches.ForEach(m =>
             {
                 try
                 {
                     // Busco dentro de la lista de participantes el que tiene el mismo id de cuenta que el summoner buscado
-                    var participant = m.ParticipantIdentities.Where(p => p.Player.CurrentAccountId == summoner.AccountId).FirstOrDefault();
+                    var participant = m.ParticipantIdentities.Where(p => p.Player.CurrentAccountId == accountId).FirstOrDefault();
                     // Obtengo los stats del summoner con el id de participante encontrado en el filtro anterior
                     var participantStats = m.Participants.Where(p => p.ParticipantId == participant.ParticipantId).FirstOrDefault();
 
@@ -184,10 +180,11 @@ namespace lol.stats.api.Business
                         else
                         {
                             // Si no existe agrego uno nuevo
-                            premadeCandidates.Add(new Premade() { 
-                                AccountId = t.Player.CurrentAccountId, 
-                                SummonerName = t.Player.SummonerName, 
-                                Wins = wasWin ? 1 : 0, 
+                            premadeCandidates.Add(new Premade()
+                            {
+                                AccountId = t.Player.CurrentAccountId,
+                                SummonerName = t.Player.SummonerName,
+                                Wins = wasWin ? 1 : 0,
                                 Losses = wasWin ? 0 : 1
                             });
                         }
@@ -300,12 +297,12 @@ namespace lol.stats.api.Business
                 {
                     throw new Exception("Error iterando la partida: " + m.GameId + " con el mensaje:" + ex.Message + " ruta: " + ex.StackTrace);
                 }
-                
+
             });
 
-            premadeCandidates.RemoveAll(r => r.Games < _minGamesToBePremade || r.AccountId == summoner.AccountId);
+            premadeCandidates.RemoveAll(r => r.Games < _minGamesToBePremade || r.AccountId == accountId);
             result.Premades = premadeCandidates;
             return result;
-        } 
+        }
     }
 }

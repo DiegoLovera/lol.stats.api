@@ -10,6 +10,8 @@ using System;
 using System.IO;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
+using lol.stats.api.Dao;
+using lol.stats.api.Dtos;
 
 namespace lol.stats.api
 {
@@ -52,6 +54,7 @@ namespace lol.stats.api
                 c.DefaultRequestHeaders.Add("X-Riot-Token", apiKey);
             });
 
+            services.AddTransient<IBaseDao<MatchDetail>, MatchDao>();
             services.AddTransient<IRiotService, RiotService>();
             services.AddTransient<ISummonerStatsBusiness, SummonerStatsBusiness>();
 
