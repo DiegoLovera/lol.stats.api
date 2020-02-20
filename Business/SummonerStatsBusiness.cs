@@ -84,18 +84,9 @@ namespace lol.stats.api.Business
         private async Task<List<MatchDetail>> GetMatchDetailsListAsync(MatchesList matchesList)
         {
             var result = new List<MatchDetail>();
-            long matchId = 0L;
-            try
+            foreach (Match match in matchesList.Matches)
             {
-                foreach (Match match in matchesList.Matches)
-                {
-                    matchId = match.GameId;
-                    result.Add(await _riotService.GetMatchDetail(match.GameId));
-                }
-            }
-            catch (Exception)
-            {
-                throw new Exception("Error al obtener la información para la partida " + matchId);
+                result.Add(await _riotService.GetMatchDetail(match.GameId));
             }
             return result;
         }
@@ -105,18 +96,20 @@ namespace lol.stats.api.Business
             var result = new SummonerStats
             {
                 MatchesDetails = matches,
-                UniqueChampions = new List<long>()
-            };
-            var summonerId = summoner.AccountId;
+                UniqueChampions = new List<UniqueChampionStats>()
+        };
             var premadeCandidates = new List<Premade>();
 
             matches.ForEach(m =>
             {
                 try
                 {
-                    var participant = m.ParticipantIdentities.Where(p => p.Player.CurrentAccountId == summonerId).FirstOrDefault();
+                    // Busco dentro de la lista de participantes el que tiene el mismo id de cuenta que el summoner buscado
+                    var participant = m.ParticipantIdentities.Where(p => p.Player.CurrentAccountId == summoner.AccountId).FirstOrDefault();
+                    // Obtengo los stats del summoner con el id de participante encontrado en el filtro anterior
                     var participantStats = m.Participants.Where(p => p.ParticipantId == participant.ParticipantId).FirstOrDefault();
 
+                    // Relleno los stats
                     result.Kills += participantStats.Stats.Kills;
                     result.Deaths += participantStats.Stats.Deaths;
                     result.Assists += participantStats.Stats.Assists;
@@ -125,25 +118,45 @@ namespace lol.stats.api.Business
                     result.MaxDeaths = result.MaxDeaths < participantStats.Stats.Deaths ? participantStats.Stats.Deaths : result.MaxDeaths;
                     result.MaxAssists = result.MaxAssists < participantStats.Stats.Assists ? participantStats.Stats.Assists : result.MaxAssists;
 
-                    if (!result.UniqueChampions.Exists(c => c == participantStats.ChampionId))
-                    {
-                        result.UniqueChampions.Add(participantStats.ChampionId);
-                    }
-
                     // Obtengo el equipo del summoner buscado
                     var team = m.Teams.Where(t => t.TeamId == participantStats.TeamId).FirstOrDefault();
 
-                    // Determino si fue victoria o derrola para el summoner buscado
+                    // Determino si fue victoria o derrola para el equipo del summoner buscado
                     var wasWin = team.Win != "Fail";
 
                     // Aumento la victoria o derrota según corresponda
-                    if (wasWin)
+                    result.Wins += wasWin ? 1 : 0;
+                    result.Losses += wasWin ? 0 : 1;
+
+                    // Busco al campeon de esta partida dentro de la lista de campeones unicos
+                    if (result.UniqueChampions.Exists(u => u.ChampionId == participantStats.ChampionId))
                     {
-                        result.Wins++;
+                        // Si ya existe aumento sus victorias o derrotas segun el resultado de la partida
+                        var uniqueChamp = result.UniqueChampions.Find(p => p.ChampionId == participantStats.ChampionId);
+                        uniqueChamp.Kills += participantStats.Stats.Kills;
+                        uniqueChamp.Deaths += participantStats.Stats.Deaths;
+                        uniqueChamp.Assists += participantStats.Stats.Assists;
+                        uniqueChamp.MaxKills = uniqueChamp.MaxKills < participantStats.Stats.Kills ? participantStats.Stats.Kills : uniqueChamp.MaxKills;
+                        uniqueChamp.MaxDeaths = uniqueChamp.MaxDeaths < participantStats.Stats.Deaths ? participantStats.Stats.Deaths : uniqueChamp.MaxDeaths;
+                        uniqueChamp.MaxAssists = uniqueChamp.MaxAssists < participantStats.Stats.Assists ? participantStats.Stats.Assists : uniqueChamp.MaxAssists;
+                        uniqueChamp.Wins += wasWin ? 1 : 0;
+                        uniqueChamp.Losses += wasWin ? 0 : 1;
                     }
                     else
                     {
-                        result.Losses++;
+                        // Si no existe lo agrego y inicio sus contadores
+                        result.UniqueChampions.Add(new UniqueChampionStats()
+                        {
+                            ChampionId = participantStats.ChampionId,
+                            Kills = participantStats.Stats.Kills,
+                            Deaths = participantStats.Stats.Deaths,
+                            Assists = participantStats.Stats.Assists,
+                            MaxKills = participantStats.Stats.Kills,
+                            MaxDeaths = participantStats.Stats.Deaths,
+                            MaxAssists = participantStats.Stats.Assists,
+                            Wins = wasWin ? 1 : 0,
+                            Losses = wasWin ? 0 : 1
+                        });
                     }
 
                     // Busco todos los participantes que esten en el mismo equipo del summoner buscado
@@ -161,29 +174,22 @@ namespace lol.stats.api.Business
                     teamMatesIdentities.ForEach(t =>
                     {
                         // validar si existe ya dentro de la lista
-                        if (premadeCandidates.Exists(p => p.SummonerName == t.Player.SummonerName))
+                        if (premadeCandidates.Exists(p => p.AccountId == t.Player.CurrentAccountId))
                         {
                             // Si ya existe aumento sus victorias o derrotas segun el resultado de la partida
-                            if (wasWin)
-                            {
-                                premadeCandidates.Find(p => p.SummonerName == t.Player.SummonerName).Wins++;
-                            }
-                            else
-                            {
-                                premadeCandidates.Find(p => p.SummonerName == t.Player.SummonerName).Losses++;
-                            }
+                            var preCandidate = premadeCandidates.Find(p => p.AccountId == t.Player.CurrentAccountId);
+                            preCandidate.Wins += wasWin ? 1 : 0;
+                            preCandidate.Losses += wasWin ? 0 : 1;
                         }
                         else
                         {
-                            // Si no existe lo agrego y inicio sus contadores
-                            if (wasWin)
-                            {
-                                premadeCandidates.Add(new Premade() { SummonerName = t.Player.SummonerName, Wins = 1, Losses = 0 });
-                            }
-                            else
-                            {
-                                premadeCandidates.Add(new Premade() { SummonerName = t.Player.SummonerName, Wins = 0, Losses = 1 });
-                            }
+                            // Si no existe agrego uno nuevo
+                            premadeCandidates.Add(new Premade() { 
+                                AccountId = t.Player.CurrentAccountId, 
+                                SummonerName = t.Player.SummonerName, 
+                                Wins = wasWin ? 1 : 0, 
+                                Losses = wasWin ? 0 : 1
+                            });
                         }
                     });
 
@@ -297,13 +303,8 @@ namespace lol.stats.api.Business
                 
             });
 
-            premadeCandidates.RemoveAll(r => r.Games < _minGamesToBePremade || r.SummonerName == summoner.Name);
+            premadeCandidates.RemoveAll(r => r.Games < _minGamesToBePremade || r.AccountId == summoner.AccountId);
             result.Premades = premadeCandidates;
-
-            result.KillsByChampions = new Dictionary<string, long>();
-            result.DeathsByChampions = new Dictionary<string, long>();
-            result.AssistsByChampions = new Dictionary<string, long>();
-            result.KdaByChampions = new Dictionary<string, double>();
             return result;
         } 
     }
