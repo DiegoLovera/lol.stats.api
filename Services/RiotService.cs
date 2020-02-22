@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace lol.stats.api.Services
@@ -40,6 +41,8 @@ namespace lol.stats.api.Services
         public async Task<MatchesList> GetSummonerMatches(string accountId, int queue, int season, long beginTime, int beginIndex, int endIndex)
         {
             var uri = _appConfig.BaseAddress + _appConfig.SummonerMatches + accountId + "?queue=" + queue + "&season=" + season + "&beginTime=" + beginTime + "&beginIndex=" + beginIndex + "&endIndex=" + endIndex;
+            // Limite temporal para evitar sobrepasar el rate limit de las peticiones
+            Thread.Sleep(1000);
             var responseString = await _httpClient.CreateClient("riot").GetStringAsync(uri);
             return JsonSerializer.Deserialize<MatchesList>(responseString, _jsonOptions);
         }

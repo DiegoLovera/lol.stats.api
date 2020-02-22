@@ -15,11 +15,8 @@ namespace lol.stats.api.Dao
             if (client != null)
                 _database = client.GetDatabase(settings.Value.MongoConfiguration.Database);
         }
-
-        /// <summary>
-        /// Player info collection.
-        /// This collection holds all the player information.
-        /// </summary>
+ 
         public IMongoCollection<MatchDetail> Match => _database.GetCollection<MatchDetail>("Matches");
+        public IMongoCollection<SummonerMatchesControl> SummonerMatchesControl => _database.GetCollection<SummonerMatchesControl>("SummonerMatchesControl");
     }
 }

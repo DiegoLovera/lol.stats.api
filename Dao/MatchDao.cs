@@ -1,7 +1,6 @@
 ﻿using lol.stats.api.Config;
 using lol.stats.api.Dtos;
 using Microsoft.Extensions.Options;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -31,7 +30,16 @@ namespace lol.stats.api.Dao
 
         public async Task InsertMany(List<MatchDetail> documents)
         {
-            await _context.Match.InsertManyAsync(documents);
+            var bulkOps = new List<WriteModel<MatchDetail>>();
+            foreach (var record in documents)
+            {
+                var upsertOne = new ReplaceOneModel<MatchDetail>(
+                    Builders<MatchDetail>.Filter.Where(x => x.GameId == record.GameId),
+                    record)
+                { IsUpsert = true };
+                bulkOps.Add(upsertOne);
+            }
+            await _context.Match.BulkWriteAsync(bulkOps);
         }
 
         public async Task<MatchDetail> Get(long id)
@@ -41,10 +49,9 @@ namespace lol.stats.api.Dao
 
         public async Task<List<MatchDetail>> Get(string accountId)
         {
-            var filter = Builders<MatchDetail>.Filter.ElemMatch(
-                                     f => f.ParticipantIdentities, item2 => item2.Player.CurrentAccountId == accountId);
-            var matches = await _context.Match.FindAsync(filter);
-            return await matches.ToListAsync();
+            var filter = Builders<MatchDetail>.Filter.ElemMatch(f => f.ParticipantIdentities, item2 => item2.Player.CurrentAccountId == accountId);
+            var orderdMatches = _context.Match.Find(filter).SortByDescending(z => z.GameCreation);
+            return await orderdMatches.ToListAsync();
         }
 
         public async Task Remove(MatchDetail document)

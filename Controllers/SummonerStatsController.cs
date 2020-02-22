@@ -86,5 +86,24 @@ namespace lol.stats.api.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
+
+        [HttpGet("/Summoner/Matches/{accountId}/LoadAll")]
+        [ProducesResponseType(typeof(bool), 200)]
+        public async Task<ActionResult> LoadAllSummonerMatches([Required] string accountId)
+        {
+            try
+            {
+                int[] validQueues = { 420, 440 };
+                return Ok(await _summonerStatsBusiness.LoadAllSummonerMatches(accountId, validQueues));
+            }
+            catch (HttpRequestException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
     }
 }

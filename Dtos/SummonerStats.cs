@@ -51,7 +51,5 @@ namespace lol.stats.api.Dtos
         public long TopCarryGames => TopCarryWins + TopCarryLosses;
 
         public List<Premade> Premades { get; set; }
-
-        public List<MatchDetail> MatchesDetails { get; set; }
     }
 }
