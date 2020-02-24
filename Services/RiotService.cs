@@ -1,6 +1,8 @@
 ﻿using lol.stats.api.Config;
 using lol.stats.api.Dtos;
 using Microsoft.Extensions.Options;
+using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -43,8 +45,20 @@ namespace lol.stats.api.Services
             var uri = _appConfig.BaseAddress + _appConfig.SummonerMatches + accountId + "?queue=" + queue + "&season=" + season + "&beginTime=" + beginTime + "&beginIndex=" + beginIndex + "&endIndex=" + endIndex;
             // Limite temporal para evitar sobrepasar el rate limit de las peticiones
             Thread.Sleep(1000);
-            var responseString = await _httpClient.CreateClient("riot").GetStringAsync(uri);
-            return JsonSerializer.Deserialize<MatchesList>(responseString, _jsonOptions);
+            var response = await _httpClient.CreateClient("riot").GetAsync(uri);
+            if (response.IsSuccessStatusCode)
+            {
+                var stringResponse = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<MatchesList>(stringResponse, _jsonOptions);
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new MatchesList() { Matches = new List<Match>() };
+            }
+            else
+            {
+                throw new Exception("Error while calling GetSummonerMatches service the status code was: " + response.StatusCode);
+            }
         }
 
         public async Task<MatchesList> GetSummonerMatches(string accountId, int season, long beginTime, int beginIndex, int endIndex)

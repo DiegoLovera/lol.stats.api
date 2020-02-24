@@ -29,6 +29,11 @@ namespace lol.stats.api.Dao
             return await matches.ToListAsync();
         }
 
+        public Task<SummonerMatchesControl> Get(long id)
+        {
+            throw new System.NotImplementedException();
+        }
+
         public async Task<List<SummonerMatchesControl>> GetByAccountId(string accountId)
         {
             IAsyncCursor<SummonerMatchesControl> matches = await _context.SummonerMatchesControl.FindAsync(t => t.AccountId == accountId);
@@ -45,6 +50,11 @@ namespace lol.stats.api.Dao
             return (await _context.SummonerMatchesControl.FindAsync(t => t.Id == Id)).FirstOrDefault();
         }
 
+        public Task InsertMany(List<SummonerMatchesControl> documents)
+        {
+            throw new System.NotImplementedException();
+        }
+
         public async Task Remove(SummonerMatchesControl document)
         {
             await _context.SummonerMatchesControl.DeleteOneAsync(p => p.Id == document.Id);
@@ -55,9 +65,19 @@ namespace lol.stats.api.Dao
             await _context.SummonerMatchesControl.DeleteOneAsync(p => p.Id == id);
         }
 
+        public Task Remove(long id)
+        {
+            throw new System.NotImplementedException();
+        }
+
         public async Task Update(string id, SummonerMatchesControl document)
         {
             await _context.SummonerMatchesControl.ReplaceOneAsync(p => p.Id == id, document);
+        }
+
+        public Task Update(long id, SummonerMatchesControl document)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

@@ -19,7 +19,7 @@ namespace lol.stats.api.Controllers
             _riotService = riotService;
         }
 
-        [HttpGet("/{summonerName}")]
+        [HttpGet("Summoner/{summonerName}")]
         [ProducesResponseType(typeof(Summoner), 200)]
         public async Task<ActionResult> GetSummoner(string summonerName)
         {
@@ -37,7 +37,7 @@ namespace lol.stats.api.Controllers
             }
         }
 
-        [HttpGet("/Matches/{accountId}")]
+        [HttpGet("Matches/{accountId}")]
         [ProducesResponseType(typeof(MatchesList), 200)]
         public async Task<ActionResult> GetMatches(string accountId, [FromQuery] int queue = 420, [FromQuery] int season = 13, [FromQuery] long beginTime = 1578668400000, [FromQuery] int beginIndex = 0, [FromQuery] int endIndex = 100)
         {
@@ -55,7 +55,7 @@ namespace lol.stats.api.Controllers
             }
         }
 
-        [HttpGet("/Match/{matchId}")]
+        [HttpGet("Match/{matchId}")]
         [ProducesResponseType(typeof(MatchDetail), 200)]
         public async Task<ActionResult> GetMatchDetail(long matchId)
         {

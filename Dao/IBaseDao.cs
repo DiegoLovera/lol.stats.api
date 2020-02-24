@@ -7,7 +7,6 @@ namespace lol.stats.api.Dao
     {
         Task<List<T>> Get();
         Task<T> Get(long id);
-        Task<List<T>> Get(string accountId);
         Task<T> Create(T document);
         Task InsertMany(List<T> documents);
         Task Update(long id, T document);

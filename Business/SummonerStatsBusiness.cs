@@ -11,7 +11,7 @@ namespace lol.stats.api.Business
     public class SummonerStatsBusiness : ISummonerStatsBusiness
     {
         private readonly IRiotService _riotService;
-        private readonly IBaseDao<MatchDetail> _matchDetailDao;
+        private readonly IMatchDao _matchDetailDao;
         private readonly ISummonerMatchesControlDao _matchControlDao;
         private readonly int _maxMatchesPerRequest = 15;
         private readonly int[] validQueues = { 400, 420, 430, 440 };
@@ -19,7 +19,7 @@ namespace lol.stats.api.Business
         private readonly long _seasonsStartTime = 1578668400000;
         private readonly int _season2020 = 13;
 
-        public SummonerStatsBusiness(IRiotService riotService, IBaseDao<MatchDetail> matchDetailDao, ISummonerMatchesControlDao summonerMatchesControlDao)
+        public SummonerStatsBusiness(IRiotService riotService, IMatchDao matchDetailDao, ISummonerMatchesControlDao summonerMatchesControlDao)
         {
             _riotService = riotService;
             _matchDetailDao = matchDetailDao;
@@ -81,7 +81,13 @@ namespace lol.stats.api.Business
             return matchesDetails;
         }
 
-        private async Task GetAllSummonerMatchesAsync(string accountId, int queue)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="accountId"></param>
+        /// <param name="queue"></param>
+        /// <returns></returns>
+        private async Task<int> GetAllSummonerMatchesAsync(string accountId, int queue)
         {
             // Obtengo la fecha de la partida más reciente que inserté
             var summonerMatchControl = await _matchControlDao.GetByAccountIdAndQueue(accountId, queue);
@@ -105,11 +111,21 @@ namespace lol.stats.api.Business
             if (mostRecentMatch != null)
             {
                 // Si no es nula entonces obtengo el gameCreation de esta y actualizo la tabla de control
-                summonerMatchControl.LastGameCreationTime = mostRecentMatch.GameCreation;
+                summonerMatchControl.LastGameCreationTime = mostRecentMatch.GameCreation + mostRecentMatch.GameDuration;
                 await _matchControlDao.Update(summonerMatchControl.Id, summonerMatchControl);
             }
+            return summonerMatches.Count;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="accountId"></param>
+        /// <param name="endIndex"></param>
+        /// <param name="queue"></param>
+        /// <param name="matchesDetails"></param>
+        /// <param name="lastGameCreationTime"></param>
+        /// <returns></returns>
         private async Task<List<MatchDetail>> GetAllSummonerMatchesAsync(string accountId, int endIndex, int queue, List<MatchDetail> matchesDetails, long lastGameCreationTime)
         {
             int beginIndex = endIndex - _maxMatchesPerRequest;
@@ -124,6 +140,12 @@ namespace lol.stats.api.Business
 
             // Obtengo el detalle de cada partida
             var newMatchesDetails = await GetMatchDetailsListAsync(summonerMatches.Matches);
+
+            // Si la request regresa 0 partidas hago return
+            if (newMatchesDetails.Count == 0)
+            {
+                return matchesDetails;
+            }
 
             // Upsert a base de datos
             await _matchDetailDao.InsertMany(newMatchesDetails);
@@ -144,6 +166,11 @@ namespace lol.stats.api.Business
             }
         }
 
+        /// <summary>
+        /// Obtiene los detalles de una lista de matches
+        /// </summary>
+        /// <param name="matchesList"></param>
+        /// <returns></returns>
         private async Task<List<MatchDetail>> GetMatchDetailsListAsync(MatchesList matchesList)
         {
             var result = new List<MatchDetail>();
@@ -154,6 +181,11 @@ namespace lol.stats.api.Business
             return result;
         }
 
+        /// <summary>
+        /// Obtiene los detalles de una lista de matches
+        /// </summary>
+        /// <param name="matchesList"></param>
+        /// <returns></returns>
         private async Task<List<MatchDetail>> GetMatchDetailsListAsync(List<Match> matchesList)
         {
             var result = new List<MatchDetail>();
@@ -164,20 +196,26 @@ namespace lol.stats.api.Business
             return result;
         }
 
-        public async Task<SummonerStats> GetSummonerStatsAsync(string accountId)
+        /// <summary>
+        /// Calcula las estadisticas avanzadas de un summoner a partir de se accountId
+        /// </summary>
+        /// <param name="accountId"></param>
+        /// <returns></returns>
+        public async Task<SummonerStats> GetSummonerStatsAsync(string summonerName)
         {
+            var summonerData = await _riotService.GetSummoner(summonerName);
             var result = new SummonerStats
             {
                 UniqueChampions = new List<UniqueChampionStats>()
             };
             var premadeCandidates = new List<Premade>();
-            var matches = await _matchDetailDao.Get(accountId);
+            var matches = await _matchDetailDao.Get(summonerData.AccountId);
             matches.ForEach(m =>
             {
                 try
                 {
                     // Busco dentro de la lista de participantes el que tiene el mismo id de cuenta que el summoner buscado
-                    var participant = m.ParticipantIdentities.Where(p => p.Player.CurrentAccountId == accountId).FirstOrDefault();
+                    var participant = m.ParticipantIdentities.Where(p => p.Player.CurrentAccountId == summonerData.AccountId).FirstOrDefault();
                     // Obtengo los stats del summoner con el id de participante encontrado en el filtro anterior
                     var participantStats = m.Participants.Where(p => p.ParticipantId == participant.ParticipantId).FirstOrDefault();
 
@@ -376,18 +414,52 @@ namespace lol.stats.api.Business
 
             });
 
-            premadeCandidates.RemoveAll(r => r.Games < _minGamesToBePremade || r.AccountId == accountId);
+            premadeCandidates.RemoveAll(r => r.Games < _minGamesToBePremade || r.AccountId == summonerData.AccountId);
             result.Premades = premadeCandidates;
             return result;
         }
 
-        public async Task<bool> LoadAllSummonerMatches(string accountId, int[] queues)
+        /// <summary>
+        /// Obtiene las partidas de un summoner de forma paginada de 15 en 15.
+        /// Se hace una petición al api con el begin index de la ultima fecha de creación de la partida más reciente,
+        /// en caso de no haber se obtienen todas y se regresan las primeras 15.
+        /// </summary>
+        /// <param name="summonerName"></param>
+        /// <param name="page"></param>
+        /// <param name="queues"></param>
+        /// <returns></returns>
+        public async Task<List<MatchDetail>> GetSummonerMatchesAsync(string summonerName, int page, long[] queues)
         {
+            var summonerData = await _riotService.GetSummoner(summonerName);
+            int totalMatches = 0;
+            // Solo cuando se obtiene la primera página se manda a actualizar todos los juegos
+            if (page == 0)
+            {
+                foreach (int queue in queues)
+                {
+                    totalMatches = await GetAllSummonerMatchesAsync(summonerData.AccountId, queue);
+                }
+            }
+            
+            var matches = await _matchDetailDao.Get(summonerData.AccountId, _maxMatchesPerRequest * page, queues);
+            return matches;
+        }
+
+        /// <summary>
+        /// Obtiene todas las partidas de un summoner para la season 2020 y las inserta en base de datos.
+        /// </summary>
+        /// <param name="accountId">AccountId del summoner a buscar</param>
+        /// <param name="queues">Queues que se desean iterar. De momento estas deberían ser 420(SoloQ) y 440(Flex)</param>
+        /// <returns>La cantidad de partidas insertadas</returns>
+        public async Task<int> LoadAllSummonerMatches(string summonerName, int[] queues)
+        {
+            var summonerData = await _riotService.GetSummoner(summonerName);
+            int totalMatches = 0;
             foreach (int queue in queues)
             {
-                await GetAllSummonerMatchesAsync(accountId, queue);
+                totalMatches += await GetAllSummonerMatchesAsync(summonerData.AccountId, queue);
             }
-            return true;
+            return totalMatches;
         }
     }
 }

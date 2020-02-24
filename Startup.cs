@@ -54,7 +54,7 @@ namespace lol.stats.api
                 c.DefaultRequestHeaders.Add("X-Riot-Token", apiKey);
             });
 
-            services.AddTransient<IBaseDao<MatchDetail>, MatchDao>();
+            services.AddTransient<IMatchDao, MatchDao>();
             services.AddTransient<ISummonerMatchesControlDao, SummonerMatchesControlDao>();
             services.AddTransient<IRiotService, RiotService>();
             services.AddTransient<ISummonerStatsBusiness, SummonerStatsBusiness>();

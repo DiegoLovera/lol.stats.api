@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace lol.stats.api.Dao
 {
-    public class MatchDao : IBaseDao<MatchDetail>
+    public class MatchDao : IMatchDao
     {
         private readonly DatabaseContext _context = null;
 
@@ -51,6 +51,21 @@ namespace lol.stats.api.Dao
         {
             var filter = Builders<MatchDetail>.Filter.ElemMatch(f => f.ParticipantIdentities, item2 => item2.Player.CurrentAccountId == accountId);
             var orderdMatches = _context.Match.Find(filter).SortByDescending(z => z.GameCreation);
+            return await orderdMatches.ToListAsync();
+        }
+
+        public async Task<List<MatchDetail>> Get(string accountId, int skip, long[] queue)
+        {
+            var filter = Builders<MatchDetail>.Filter.ElemMatch(f => f.ParticipantIdentities, item2 => item2.Player.CurrentAccountId == accountId);
+            var filter2 = Builders<MatchDetail>.Filter.In(f => f.QueueId, queue);
+            var orderdMatches = _context.Match.Find(filter & filter2).SortByDescending(z => z.GameCreation).Skip(skip).Limit(15);
+            return await orderdMatches.ToListAsync();
+        }
+
+        public async Task<List<MatchDetail>> Get(string accountId, int skip)
+        {
+            var filter = Builders<MatchDetail>.Filter.ElemMatch(f => f.ParticipantIdentities, item2 => item2.Player.CurrentAccountId == accountId);
+            var orderdMatches = _context.Match.Find(filter).SortByDescending(z => z.GameCreation).Skip(skip).Limit(15);
             return await orderdMatches.ToListAsync();
         }
 
