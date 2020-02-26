@@ -55,7 +55,7 @@ namespace lol.stats.api
             });
 
             services.AddTransient<IMatchDao, MatchDao>();
-            services.AddTransient<ISummonerMatchesControlDao, SummonerMatchesControlDao>();
+            services.AddTransient<IControlDao, ControlDao>();
             services.AddTransient<IRiotService, RiotService>();
             services.AddTransient<ISummonerStatsBusiness, SummonerStatsBusiness>();
 

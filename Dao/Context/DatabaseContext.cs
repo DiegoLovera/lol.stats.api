@@ -17,6 +17,6 @@ namespace lol.stats.api.Dao
         }
  
         public IMongoCollection<MatchDetail> Match => _database.GetCollection<MatchDetail>("Matches");
-        public IMongoCollection<SummonerMatchesControl> SummonerMatchesControl => _database.GetCollection<SummonerMatchesControl>("SummonerMatchesControl");
+        public IMongoCollection<Control> Control => _database.GetCollection<Control>("Control");
     }
 }

@@ -14,7 +14,7 @@
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "API_KEY": "RGAPI-63ae4336-98a7-47f7-9854-b18abee12325"
+        "API_KEY": "RGAPI-e3772983-d05a-4241-80cd-253b5773d519"
       }
     },
     "lol.stats.api": {
@@ -22,7 +22,7 @@
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "API_KEY": "RGAPI-63ae4336-98a7-47f7-9854-b18abee12325"
+        "API_KEY": "RGAPI-e3772983-d05a-4241-80cd-253b5773d519"
       },
       "applicationUrl": "https://localhost:5001;http://localhost:5000"
     },

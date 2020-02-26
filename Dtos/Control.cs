@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace lol.stats.api.Dtos
 {
-    public class SummonerMatchesControl
+    public class Control
     {
         [BsonId, BsonRepresentation(BsonType.ObjectId)]
         public string Id { get; set; }
@@ -11,8 +11,8 @@ namespace lol.stats.api.Dtos
         [BsonElement("AccountId")]
         public string AccountId { get; set; }
 
-        [BsonElement("LastGameCreationTime")]
-        public long LastGameCreationTime { get; set; }
+        [BsonElement("LastGameTime")]
+        public long LastGameTime { get; set; }
 
         [BsonElement("Queue")]
         public int Queue { get; set; }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace lol.stats.api.Dao
 {
-    public interface IMatchDao : IBaseDao<MatchDetail>
+    public interface IMatchDao : IBaseDao<MatchDetail, long>
     {
         Task<List<MatchDetail>> Get(string accountId);
         Task<List<MatchDetail>> Get(string accountId, int skip);

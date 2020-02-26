@@ -12,14 +12,14 @@ namespace lol.stats.api.Business
     {
         private readonly IRiotService _riotService;
         private readonly IMatchDao _matchDetailDao;
-        private readonly ISummonerMatchesControlDao _matchControlDao;
+        private readonly IControlDao _matchControlDao;
         private readonly int _maxMatchesPerRequest = 15;
         private readonly int[] validQueues = { 400, 420, 430, 440 };
         private readonly int _minGamesToBePremade = 2;
         private readonly long _seasonsStartTime = 1578668400000;
         private readonly int _season2020 = 13;
 
-        public SummonerStatsBusiness(IRiotService riotService, IMatchDao matchDetailDao, ISummonerMatchesControlDao summonerMatchesControlDao)
+        public SummonerStatsBusiness(IRiotService riotService, IMatchDao matchDetailDao, IControlDao summonerMatchesControlDao)
         {
             _riotService = riotService;
             _matchDetailDao = matchDetailDao;
@@ -94,15 +94,15 @@ namespace lol.stats.api.Business
             if (summonerMatchControl == null)
             {
                 // Si no existe entonces inserto el registro con la fecha de inicio de la season
-                summonerMatchControl = await _matchControlDao.Create(new SummonerMatchesControl()
+                summonerMatchControl = await _matchControlDao.Create(new Control()
                 {
                     AccountId = accountId,
                     Queue = queue,
-                    LastGameCreationTime = _seasonsStartTime
+                    LastGameTime = _seasonsStartTime
                 });
             }
             // Ejecuto el método para obtener todas las partidas que hayan entre la fecha actual y la fecha de la ultima partida en base de datos
-            var summonerMatches = await GetAllSummonerMatchesAsync(accountId, _maxMatchesPerRequest, queue, new List<MatchDetail>(), summonerMatchControl.LastGameCreationTime);
+            var summonerMatches = await GetAllSummonerMatchesAsync(accountId, _maxMatchesPerRequest, queue, new List<MatchDetail>(), summonerMatchControl.LastGameTime);
 
             // De todas las partidas obtenidas las ordeno por gameCreation para obtener la más reciente
             var mostRecentMatch = summonerMatches.OrderByDescending(c => c.GameCreation).FirstOrDefault();
@@ -111,7 +111,7 @@ namespace lol.stats.api.Business
             if (mostRecentMatch != null)
             {
                 // Si no es nula entonces obtengo el gameCreation de esta y actualizo la tabla de control
-                summonerMatchControl.LastGameCreationTime = mostRecentMatch.GameCreation + mostRecentMatch.GameDuration;
+                summonerMatchControl.LastGameTime = mostRecentMatch.GameCreation + mostRecentMatch.GameDuration;
                 await _matchControlDao.Update(summonerMatchControl.Id, summonerMatchControl);
             }
             return summonerMatches.Count;
