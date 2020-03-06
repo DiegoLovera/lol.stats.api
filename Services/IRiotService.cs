@@ -1,4 +1,5 @@
 ﻿using lol.stats.api.Dtos;
+using lol.stats.api.Dtos.Riot;
 using System.Threading.Tasks;
 
 namespace lol.stats.api.Services
@@ -13,5 +14,6 @@ namespace lol.stats.api.Services
         Task<MatchesList> GetSummonerMatches(int queue, string accountId, int beginIndex, int endIndex);
         Task<MatchesList> GetSummonerMatches(string accountId, int beginIndex, int endIndex);
         Task<MatchDetail> GetMatchDetail(long matchId);
+        Task<Champions> GetChampions();
     }
 }

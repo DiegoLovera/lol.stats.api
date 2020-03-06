@@ -1,5 +1,6 @@
 ﻿using lol.stats.api.Config;
 using lol.stats.api.Dtos;
+using lol.stats.api.Dtos.Riot;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -24,6 +25,14 @@ namespace lol.stats.api.Services
             _jsonOptions = new JsonSerializerOptions();
             _jsonOptions.Converters.Add(new JsonStringEnumConverter());
             _jsonOptions.WriteIndented = true;
+        }
+
+        public async Task<Champions> GetChampions()
+        {
+            var uri = "http://ddragon.leagueoflegends.com/cdn/10.5.1/data/en_US/champion.json";
+            var responseString = await _httpClient.CreateClient().GetStringAsync(uri);
+            var response = JsonSerializer.Deserialize<Champions>(responseString, _jsonOptions);
+            return response;
         }
 
         public async Task<MatchDetail> GetMatchDetail(long matchId)

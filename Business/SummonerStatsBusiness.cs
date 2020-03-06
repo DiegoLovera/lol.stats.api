@@ -442,12 +442,13 @@ namespace lol.stats.api.Business
             }
             
             var matches = await _matchDetailDao.Get(summonerData.AccountId, _maxMatchesPerRequest * page, queues);
-            return MatchesToSummonerMatches(summonerData.AccountId, matches);
+            return await MatchesToSummonerMatches(summonerData.AccountId, matches);
         }
 
-        public List<SummonerMatch> MatchesToSummonerMatches(string accountId, List<MatchDetail> matches)
+        public async Task<List<SummonerMatch>> MatchesToSummonerMatches(string accountId, List<MatchDetail> matches)
         {
             var result = new List<SummonerMatch>();
+            var champions = await _riotService.GetChampions();
             foreach (MatchDetail match in matches)
             {
                 var summonerMatch = new SummonerMatch()
@@ -468,9 +469,13 @@ namespace lol.stats.api.Business
                 // Obtengo los stats del summoner con el id de participante encontrado en el filtro anterior
                 var participantStats = match.Participants.Where(p => p.ParticipantId == participant.ParticipantId).FirstOrDefault();
 
-                var currentParticipant = new SummonerParticipant() { 
-                    Participant = participantStats, 
-                    ParticipantIdentity = participant
+                var currentChamp = champions.Data.AsQueryable().Where(x => x.Value.Key == participantStats.ChampionId.ToString()).FirstOrDefault();
+
+                var currentParticipant = new SummonerParticipant() {
+                    Participant = participantStats,
+                    ParticipantIdentity = participant,
+                    ChampionName = currentChamp.Value.Name,
+                    ChampionImage = "https://ddragon.leagueoflegends.com/cdn/10.4.1/img/champion/" + currentChamp.Value.Image.Full
                 };
 
                 summonerMatch.CurrentParticipant = currentParticipant;
@@ -487,9 +492,14 @@ namespace lol.stats.api.Business
                 var teamMatesIdentities = new List<ParticipantIdentity>();
                 foreach (Participant teamMate in teamMates)
                 {
+                    var currentAllieChamp = champions.Data.AsQueryable().Where(x => x.Value.Key == teamMate.ChampionId.ToString()).FirstOrDefault();
+
                     allies.Add(new SummonerParticipant() { 
                         Participant = teamMate, 
-                        ParticipantIdentity = match.ParticipantIdentities.Where(p => p.ParticipantId == teamMate.ParticipantId).FirstOrDefault() });
+                        ParticipantIdentity = match.ParticipantIdentities.Where(p => p.ParticipantId == teamMate.ParticipantId).FirstOrDefault(),
+                        ChampionName = currentAllieChamp.Value.Name,
+                        ChampionImage = "https://ddragon.leagueoflegends.com/cdn/10.4.1/img/champion/" + currentAllieChamp.Value.Image.Full
+                    });
                     
                 }
 

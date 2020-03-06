@@ -13,5 +13,11 @@ namespace lol.stats.api.Dtos
 
         [JsonPropertyName("participantIdentity")]
         public ParticipantIdentity ParticipantIdentity { get; set; }
+
+        [JsonPropertyName("championName")]
+        public string ChampionName { get; set; }
+
+        [JsonPropertyName("championImage")]
+        public string ChampionImage { get; set; }
     }
 }
