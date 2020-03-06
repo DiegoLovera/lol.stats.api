@@ -428,7 +428,7 @@ namespace lol.stats.api.Business
         /// <param name="page"></param>
         /// <param name="queues"></param>
         /// <returns></returns>
-        public async Task<List<MatchDetail>> GetSummonerMatchesAsync(string summonerName, int page, long[] queues)
+        public async Task<List<SummonerMatch>> GetSummonerMatchesAsync(string summonerName, int page, long[] queues)
         {
             var summonerData = await _riotService.GetSummoner(summonerName);
             int totalMatches = 0;
@@ -442,7 +442,79 @@ namespace lol.stats.api.Business
             }
             
             var matches = await _matchDetailDao.Get(summonerData.AccountId, _maxMatchesPerRequest * page, queues);
-            return matches;
+            return MatchesToSummonerMatches(summonerData.AccountId, matches);
+        }
+
+        public List<SummonerMatch> MatchesToSummonerMatches(string accountId, List<MatchDetail> matches)
+        {
+            var result = new List<SummonerMatch>();
+            foreach (MatchDetail match in matches)
+            {
+                var summonerMatch = new SummonerMatch()
+                {
+                    GameId = match.GameId,
+                    PlatformId = match.PlatformId,
+                    GameCreation = match.GameCreation,
+                    GameDuration = match.GameDuration,
+                    QueueId = match.QueueId,
+                    MapId = match.MapId,
+                    SeasonId = match.SeasonId,
+                    GameVersion = match.GameVersion,
+                    GameMode = match.GameMode,
+                    GameType = match.GameType
+                };
+                // Busco dentro de la lista de participantes el que tiene el mismo id de cuenta que el summoner buscado
+                var participant = match.ParticipantIdentities.Where(p => p.Player.CurrentAccountId == accountId).FirstOrDefault();
+                // Obtengo los stats del summoner con el id de participante encontrado en el filtro anterior
+                var participantStats = match.Participants.Where(p => p.ParticipantId == participant.ParticipantId).FirstOrDefault();
+
+                var currentParticipant = new SummonerParticipant() { 
+                    Participant = participantStats, 
+                    ParticipantIdentity = participant
+                };
+
+                summonerMatch.CurrentParticipant = currentParticipant;
+
+                summonerMatch.AlliedTeam = match.Teams.Where(x => x.TeamId == currentParticipant.Participant.TeamId).FirstOrDefault();
+                summonerMatch.EnemyTeam = match.Teams.Where(x => x.TeamId != currentParticipant.Participant.TeamId).FirstOrDefault();
+
+                var allies = new List<SummonerParticipant>();
+                var enemies = new List<SummonerParticipant>();
+                // Busco todos los participantes que esten en el mismo equipo del summoner buscado
+                var teamMates = match.Participants.Where(p => p.TeamId == currentParticipant.Participant.TeamId);
+
+                // Busco los identities de cada uno de los compañeros de equipo
+                var teamMatesIdentities = new List<ParticipantIdentity>();
+                foreach (Participant teamMate in teamMates)
+                {
+                    allies.Add(new SummonerParticipant() { 
+                        Participant = teamMate, 
+                        ParticipantIdentity = match.ParticipantIdentities.Where(p => p.ParticipantId == teamMate.ParticipantId).FirstOrDefault() });
+                    
+                }
+
+                summonerMatch.Allies = allies;
+
+                // Busco todos los participantes que esten en el otro equipo del summoner buscado
+                var enemyTeamMates = match.Participants.Where(p => p.TeamId != currentParticipant.Participant.TeamId);
+
+                // Busco los identities de cada uno de los compañeros de equipo
+                var enemyTeamMatesIdentities = new List<ParticipantIdentity>();
+                foreach (Participant enemyTeamMate in enemyTeamMates)
+                {
+                    enemies.Add(new SummonerParticipant()
+                    {
+                        Participant = enemyTeamMate,
+                        ParticipantIdentity = match.ParticipantIdentities.Where(p => p.ParticipantId == enemyTeamMate.ParticipantId).FirstOrDefault()
+                    });
+
+                }
+
+                summonerMatch.Enemies = enemies;
+
+                result.Add(summonerMatch);
+            }
+            return result;
         }
 
         /// <summary>

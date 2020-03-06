@@ -32,7 +32,7 @@ namespace lol.stats.api.Controllers
         /// <param name="page">Página de resultados. Este valor empieza de 1 en adelante, en caso de no ser envíado se tomara 0 por default.</param>
         /// <returns>Una lista con las partidas del juegador buscado.</returns>
         [HttpGet("{summonerName}/Matches")]
-        [ProducesResponseType(typeof(List<MatchDetail>), 200)]
+        [ProducesResponseType(typeof(List<SummonerMatch>), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(string), 400)]
         [ProducesResponseType(typeof(string), 500)]
