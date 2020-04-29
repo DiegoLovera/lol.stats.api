@@ -45,8 +45,20 @@ namespace lol.stats.api.Services
         public async Task<Summoner> GetSummoner(string summonerName)
         {
             var uri = _appConfig.BaseAddress + _appConfig.Summoner + summonerName;
-            var responseString = await _httpClient.CreateClient("riot").GetStringAsync(uri);
-            return JsonSerializer.Deserialize<Summoner>(responseString, _jsonOptions);
+            var response = await _httpClient.CreateClient("riot").GetAsync(uri);
+            if (response.IsSuccessStatusCode)
+            {
+                var stringResponse = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<Summoner>(stringResponse, _jsonOptions);
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new Summoner();
+            }
+            else
+            {
+                throw new Exception("Error while calling GetSummoner service the status code was: " + response.StatusCode);
+            }
         }
 
         public async Task<MatchesList> GetSummonerMatches(string accountId, int queue, int season, long beginTime, int beginIndex, int endIndex)
