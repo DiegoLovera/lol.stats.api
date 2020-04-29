@@ -29,9 +29,8 @@ namespace lol.stats.api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-            string apiKey = Environment.GetEnvironmentVariable("API_KEY");
 
+            string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             Configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", false, true)
@@ -51,7 +50,7 @@ namespace lol.stats.api
             services.AddHttpClient("riot", c =>
             {
                 c.BaseAddress = new Uri(Configuration.GetSection("AppSettings").GetValue<string>("BaseAddress"));
-                c.DefaultRequestHeaders.Add("X-Riot-Token", apiKey);
+                c.DefaultRequestHeaders.Add("X-Riot-Token", Configuration.GetSection("AppSettings").GetValue<string>("ApiKey"));
             });
 
             services.AddTransient<IMatchDao, MatchDao>();
