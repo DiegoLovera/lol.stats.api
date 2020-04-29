@@ -19,4 +19,4 @@ RUN dotnet publish "lol.stats.api.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "lol.stats.api.dll"]
+CMD dotnet lol.stats.api.dll
